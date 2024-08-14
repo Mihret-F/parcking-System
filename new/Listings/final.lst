@@ -1,0 +1,278 @@
+C51 COMPILER V9.60.0.0   FINAL                                                             06/30/2024 17:01:02 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE FINAL
+OBJECT MODULE PLACED IN .\Objects\final.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE final.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\fin
+                    -al.lst) TABS(2) OBJECT(.\Objects\final.obj)
+
+line level    source
+
+   1          #include<reg51.h>
+   2          
+   3          /*Motor Connection Declaration*/
+   4          sbit doorp=P2^0;  //Opening Motor Pin (P2.0) clockwise
+   5          sbit doorn=P2^1;  //Closing Motor Pin (P2.1) anti-clockwise
+   6          
+   7          /*LCD Connection Declaration*/
+   8          sbit rs=P2^5;     //Register Select Pin (P2.5)
+   9          sbit rw=P2^6;     //Read & write Pin (P2.6)
+  10          sbit en=P2^7;     //Enable Pin (P2.7)
+  11          
+  12          void lcddat(unsigned char);   //Function to send data to LCD, character by character(1 byte size)
+  13          void lcdcmd(unsigned char);   //Function to send command to LCD
+  14          void lcddis(unsigned char *); //Function to display string in LCD
+  15          
+  16          void lcd_init();              //LCD initialization
+  17          void serial_init();           //Serial Initialization for serial communication b/w RFID reader & LCD
+  18          void check();                 //Function to Check if reg. no. is present in database or not
+  19          void convert(unsigned int);   //Convert String Count to Integer Count
+  20          
+  21          /*Delay functions for LCD and Motor*/
+  22          void delay();
+  23          void mdelay();
+  24          
+  25          unsigned char rfid[10],v1;    //Variable declaration, rfid[10] is 1-D array of size 10
+  26          
+  27          /* MAIN function declaration */
+  28          void main()
+  29          {
+  30   1        doorp=doorn=0;              //Both the motors opening & closing is initialized to 0
+  31   1        serial_init();              //Serial Initialization function is called
+  32   1        lcd_init();                 //LCD initialization function is called
+  33   1        lcddis("RFID BASED CAR");   
+  34   1        lcdcmd(0xc0);               //0xc0 forces cursor to the beginning of second line
+  35   1        lcddis("PARKING SYSTEM");
+  36   1        delay();
+  37   1        delay();
+  38   1        lcdcmd(0x01);               //0x01 clears the LCD
+  39   1        lcddis("MADE BY");
+  40   1        lcdcmd(0xc0);
+  41   1        lcddis("GROUP 3");
+  42   1        delay();
+  43   1        delay();
+  44   1        while(1)
+  45   1        {
+  46   2          lcdcmd(0x01);               //LCD is cleared
+  47   2          lcddis("SWIPE YOUR CARD ");
+  48   2          lcdcmd(0xc0);
+  49   2          lcddis("(9-DIGIT )");
+  50   2          //for loop is run for the no. of characters in the password one will enter
+  51   2          for(v1=0;v1<9;v1++)
+  52   2          {
+  53   3            while(RI==0);     //wait untill data is received from rfid reader to 8051
+  54   3                              //After data is received it is saved in the SBUF register
+C51 COMPILER V9.60.0.0   FINAL                                                             06/30/2024 17:01:02 PAGE 2   
+
+  55   3            rfid[v1]=SBUF;    //SBUF character is saved in rfid[v1]
+  56   3            RI=0;             //RI is forced to 0 to allow next received chracter byte to be placed in SBUF
+  57   3            SBUF=rfid[v1];    //Re-Transmitting back to SBUF in order to see what we are typing
+  58   3            while(TI==0);     
+  59   3            TI=0;
+  60   3          }
+  61   2          check();            //Check function is called
+  62   2        }
+  63   1      }
+  64          
+  65          /*
+  66            Check Function
+  67            It matches the reg. no. entered in the terminal with one present here
+  68          */
+  69          void check()
+  70            {
+  71   1          if(rfid[0]=='1'&&rfid[1]=='8'&&rfid[2]=='1'&&rfid[3]=='8'&&rfid[4]=='1'&&rfid[5]=='8'&&rfid[6]=='1'&&rfi
+             -d[7]=='8'&&rfid[8]=='1')
+  72   1          {
+  73   2            lcdcmd(0x01);                   //0x01 clears the LCD contents
+  74   2            lcddis("ASSOCIATION MEMBER");   //String is displayed in the LCD
+  75   2            lcdcmd("0xc0");                 //0xc0 forces the cursor to beginning of second line
+*** WARNING C214 IN LINE 75 OF final.c: 'Argument': conversion: pointer to non-pointer
+  76   2          //  lcddis("HB");
+  77   2            delay();                        //Delay function is called
+  78   2            delay();
+  79   2            lcdcmd(0x01);                   //LCD is cleared
+  80   2            doorp=1;doorn=0;                //Opening door is turned high
+  81   2            lcddis("DOOR OPENING");
+  82   2            lcdcmd(0xc0);                   //Forcing cursor to beginning of second line
+  83   2            lcddis("ALLOW INSIDE");
+  84   2            mdelay();
+  85   2            doorp=0;doorn=0;                //Both the motors are now turned off
+  86   2            delay();
+  87   2            lcdcmd(0x01);                   //Clears the LCD
+  88   2            mdelay();
+  89   2            doorp=0;doorn=1;                //Closing motor is turned high
+  90   2            lcddis("DOOR CLOSING");
+  91   2            mdelay();
+  92   2            doorp=0;doorn=0;                //Both the motors are turned off again
+  93   2          }
+  94   1          else if(rfid[0]=='1'&&rfid[1]=='2'&&rfid[2]=='1'&&rfid[3]=='2'&&rfid[4]=='1'&&rfid[5]=='2'&&rfid[6]=='1'
+             -&&rfid[7]=='2'&&rfid[8]=='1')
+  95   1          {
+  96   2            lcdcmd(0x01);                   //0x01 clears the LCD contents
+  97   2            lcddis("ASSOCIATION MEMBER");   //String is displayed in the LCD
+  98   2            lcdcmd("0xc0");                 //0xc0 forces the cursor to beginning of second line
+*** WARNING C214 IN LINE 98 OF final.c: 'Argument': conversion: pointer to non-pointer
+  99   2            //lcddis("Hc");
+ 100   2            delay();                        //Delay function is called
+ 101   2            delay();
+ 102   2            lcdcmd(0x01);                   //LCD is cleared
+ 103   2            doorp=1;doorn=0;                //Opening door is turned high
+ 104   2            lcddis("DOOR OPENING");
+ 105   2            lcdcmd(0xc0);                   //Forcing cursor to beginning of second line
+ 106   2            lcddis("ALLOW INSIDE");
+ 107   2            mdelay();
+ 108   2            doorp=0;doorn=0;                //Both the motors are now turned off
+ 109   2            delay();
+ 110   2            lcdcmd(0x01);       //Clears the LCD
+ 111   2            mdelay();
+ 112   2            doorp=0;doorn=1;                //Closing motor is turned high
+C51 COMPILER V9.60.0.0   FINAL                                                             06/30/2024 17:01:02 PAGE 3   
+
+ 113   2            lcddis("DOOR CLOSING");
+ 114   2            mdelay();
+ 115   2            doorp=0;doorn=0;                //Both the motors are turned off again
+ 116   2          }
+ 117   1          else if(rfid[0]=='0'&&rfid[1]=='0'&&rfid[2]=='0'&&rfid[3]=='0'&&rfid[4]=='0'&&rfid[5]=='0'&&rfid[6]=='0'
+             -&&rfid[7]=='0'&&rfid[8]=='0')
+ 118   1          {
+ 119   2            lcdcmd(0x01);                   //0x01 clears the LCD contents
+ 120   2            lcddis("ASSOCIATION MEMBER");   //String is displayed in the LCD
+ 121   2            lcdcmd("0xc0");                 //0xc0 forces the cursor to beginning of second line
+*** WARNING C214 IN LINE 121 OF final.c: 'Argument': conversion: pointer to non-pointer
+ 122   2            //lcddis("Hc");
+ 123   2            delay();                        //Delay function is called
+ 124   2            delay();
+ 125   2            lcdcmd(0x01);                   //LCD is cleared
+ 126   2            doorp=1;doorn=0;                //Opening door is turned high
+ 127   2            lcddis("DOOR OPENING");
+ 128   2            lcdcmd(0xc0);                   //Forcing cursor to beginning of second line
+ 129   2            lcddis("ALLOW INSIDE");
+ 130   2            mdelay();
+ 131   2            doorp=0;doorn=0;                //Both the motors are now turned off
+ 132   2            delay();
+ 133   2            lcdcmd(0x01);       //Clears the LCD
+ 134   2            mdelay();
+ 135   2            doorp=0;doorn=1;                //Closing motor is turned high
+ 136   2            lcddis("DOOR CLOSING");
+ 137   2            mdelay();
+ 138   2            doorp=0;doorn=0;                //Both the motors are turned off again
+ 139   2          }
+ 140   1          else if(rfid[0]=='1'&&rfid[1]=='1'&&rfid[2]=='1'&&rfid[3]=='1'&&rfid[4]=='1'&&rfid[5]=='1'&&rfid[6]=='1'
+             -&&rfid[7]=='1'&&rfid[8]=='1')
+ 141   1          {
+ 142   2            lcdcmd(0x01);                   //0x01 clears the LCD contents
+ 143   2            lcddis("ASSOCIATION MEMBER");   //String is displayed in the LCD
+ 144   2            lcdcmd("0xc0");                 //0xc0 forces the cursor to beginning of second line
+*** WARNING C214 IN LINE 144 OF final.c: 'Argument': conversion: pointer to non-pointer
+ 145   2            //lcddis("Hc");
+ 146   2            delay();                        //Delay function is called
+ 147   2            delay();
+ 148   2            lcdcmd(0x01);                   //LCD is cleared
+ 149   2            doorp=1;doorn=0;                //Opening door is turned high
+ 150   2            lcddis("DOOR OPENING");
+ 151   2            lcdcmd(0xc0);                   //Forcing cursor to beginning of second line
+ 152   2            lcddis("ALLOW INSIDE");
+ 153   2            mdelay();
+ 154   2            doorp=0;doorn=0;                //Both the motors are now turned off
+ 155   2            delay();
+ 156   2            lcdcmd(0x01);       //Clears the LCD
+ 157   2            mdelay();
+ 158   2            doorp=0;doorn=1;                //Closing motor is turned high
+ 159   2            lcddis("DOOR CLOSING");
+ 160   2            mdelay();
+ 161   2            doorp=0;doorn=0;                //Both the motors are turned off again
+ 162   2          }
+ 163   1          else
+ 164   1          {
+ 165   2            lcdcmd(0x01);                   //LCD is cleared
+ 166   2            lcddis("OUTSIDE PERSON");       
+ 167   2            lcdcmd(0xc0);                   //Forcing cursor to second line 
+ 168   2            lcddis("NO SLOT FOR YOU");
+ 169   2            mdelay();                       
+ 170   2          }
+C51 COMPILER V9.60.0.0   FINAL                                                             06/30/2024 17:01:02 PAGE 4   
+
+ 171   1        }
+ 172            
+ 173            /*LCD initialization function*/
+ 174            void lcd_init()
+ 175            {
+ 176   1          lcdcmd(0x38);     //8-bit data initialization
+ 177   1          lcdcmd(0x01);     //Clear LCD Screen
+ 178   1          lcdcmd(0x10);     //Shift cursor position to right
+ 179   1          lcdcmd(0x0c);     //Display switch command to turn on display and turn off cursor
+ 180   1          lcdcmd(0x80);     //Sets the cursor to the beginng of first line
+ 181   1        }
+ 182            
+ 183            /*LCD command function*/
+ 184            void lcdcmd(unsigned char val)
+ 185            {
+ 186   1          P1=val;
+ 187   1          rs=0;
+ 188   1          rw=0;
+ 189   1          en=1;
+ 190   1          delay();
+ 191   1          en=0;
+ 192   1        }
+ 193            
+ 194            /*LCD Data Function*/
+ 195            void lcddat(unsigned char val)
+ 196            {
+ 197   1          P1=val;
+ 198   1          rs=1;
+ 199   1          rw=0;
+ 200   1          en=1;
+ 201   1          delay();
+ 202   1          en=0;
+ 203   1        }
+ 204            
+ 205            /*Delay Function in ms*/
+ 206            void delay()
+ 207            {
+ 208   1          unsigned int v5;
+ 209   1          for(v5=0;v5<20000;v5++);
+ 210   1        }
+ 211            
+ 212            /*LCD Display Function*/
+ 213            void lcddis(unsigned char *s)
+ 214            {
+ 215   1          unsigned char w;          //Temp. variable
+ 216   1          for(w=0;s[w]!='\0';w++)   //Sending character by character untill s[w] hits null character
+ 217   1          {
+ 218   2            lcddat(s[w]);
+ 219   2          }
+ 220   1        }
+ 221            
+ 222            /*Serial Initialization Function*/
+ 223            void serial_init()
+ 224            {
+ 225   1          SCON=0x50;        //SCON value is loaded with 50H 
+ 226   1          TMOD=0x20;        //Timer 1, Mode 2 selected
+ 227   1          TH1=-3;           //9600 baud rate 
+ 228   1          TR1=1;            //Timer 1 is started
+ 229   1        }
+ 230            
+ 231            void mdelay()
+ 232            {
+C51 COMPILER V9.60.0.0   FINAL                                                             06/30/2024 17:01:02 PAGE 5   
+
+ 233   1          unsigned int v6,v7;
+ 234   1          for(v6=0;v6<2;v6++)
+ 235   1          {
+ 236   2            for(v7=0;v7<60000;v7++);
+ 237   2          }
+ 238   1        }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    672    ----
+   CONSTANT SIZE    =    168    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     11       6
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  4 WARNING(S),  0 ERROR(S)

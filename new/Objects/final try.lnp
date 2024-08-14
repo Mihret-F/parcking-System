@@ -1,0 +1,3 @@
+".\Objects\final.obj" 
+TO ".\Objects\final try" 
+PRINT(".\Listings\final try.m51")
